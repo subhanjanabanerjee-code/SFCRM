@@ -1,33 +1,35 @@
-name: Validate/Deploy 
-
+name: Validate/Deploy
+ 
 on:
   push:
   pull_request:
-
+ 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+ 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+ 
+      - name: Install Salesforce CLI and Delta Plugin
+        run: |
+          wget https://developer.salesforce.com/media/salesforce-cli/sf/channels/stable/sf-linux-x64.tar.xz
+          mkdir -p ~/cli/sf
+          tar xJf sf-linux-x64.tar.xz -C ~/cli/sf --strip-components 1
+          echo "$HOME/cli/sf/bin" >> $GITHUB_PATH
+          ~/cli/sf/bin/sfdx version
+ 
       - name: Install git-delta
         run: |
               echo y | sfdx plugins:install sfdx-git-delta
               sfdx plugins
-
-      - name: Install Salesforce CLI and Delta Plugin
-        run: |
-          npm install --global sf-cli
-          sfdx plugins:install sfdx-git-delta
-
+             
       - name: Create delta packages for new, modified or deleted metadata
         run: |
           mkdir changed-sources
           sfdx sgd:source:delta --to "HEAD" --from "HEAD^" -i ./ignorefiles --output changed-sources/ --generate-delta --source force-app/
-
+ 
       - name: Deploy delta package using Salesforce CLI
         run: |
            sf deploy metadata
-          
